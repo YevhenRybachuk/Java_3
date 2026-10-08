@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: lab1
+
+  datasource:
+    url: jdbc:mysql://localhost:3307/subscriptiondb
+    username: root
+    password: root
+
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+
+  security:
+    oauth2:
+      client:
+        registration:
+          keycloak:
+            client-id: subscription-ui
+            client-secret: SkCtA9taUtiIjr9G95TnyCb6rjl91ZVk
+            authorization-grant-type: authorization_code
+            scope: openid, profile, email
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+        provider:
+          keycloak:
+            issuer-uri: http://localhost:8081/realms/subscription-tracker
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8081/realms/subscription-tracker

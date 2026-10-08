@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="uk" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title}">Трекер підписок</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body>
+<header th:fragment="topbar" class="topbar">
+    <div class="brand">
+        <a th:href="@{/subscriptions}">Subscription Tracker</a>
+    </div>
+    <div class="user-box" sec:authorize="isAuthenticated()">
+        <span sec:authentication="name">user</span>
+        <form th:action="@{/logout}" method="post" class="inline">
+            <button type="submit" class="btn btn-ghost">Вийти</button>
+        </form>
+    </div>
+</header>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="uk" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${pageTitle} ?: 'Трекер підписок'">Трекер підписок</title>
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+</head>
+<body>
+<header class="topbar">
+    <div class="brand">
+        <a th:href="@{/subscriptions}">Subscription Tracker</a>
+    </div>
+    <div class="user-box" sec:authorize="isAuthenticated()">
+        <span th:text="${currentUser} ?: ${#authentication.name}">user</span>
+        <form th:action="@{/logout}" method="post" class="inline">
+            <button type="submit" class="btn btn-ghost">Вийти</button>
+        </form>
+    </div>
+</header>
+
+<main class="container">
+    <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+    <div th:if="${errorMessage}" class="alert alert-error" th:text="${errorMessage}"></div>
+    <div th:replace="~{::content}">Контент</div>
+</main>
+</body>
+</html>

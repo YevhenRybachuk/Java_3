@@ -1,0 +1,17 @@
+databaseChangeLog:
+  # Ідемпотентний seed: безпечно на БД, де категорії/юзери вже є
+  - changeSet:
+      id: 004-seed-demo-data
+      author: codex
+      changes:
+        - sql:
+            dbms: mysql
+            sql: |
+              INSERT IGNORE INTO users (username, email, role) VALUES
+                ('demo_user', 'demo@example.com', 'USER'),
+                ('demo_admin', 'admin@example.com', 'ADMIN');
+              INSERT IGNORE INTO categories (name) VALUES
+                ('Streaming'),
+                ('Software'),
+                ('Fitness'),
+                ('Education');

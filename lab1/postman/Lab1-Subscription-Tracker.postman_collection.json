@@ -1,0 +1,313 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "Lab1 — Subscription Tracker",
+    "description": "Колекція для захисту лабораторної №1.\n\nПеред стартом:\n1. Запустіть Keycloak (realm subscription-tracker) і застосунок.\n2. У клієнті subscription-ui увімкніть Direct access grants (Resource Owner Password Credentials).\n3. У Collection Variables задайте логіни USER і ADMIN з Keycloak.\n4. Спочатку виконайте запити з папки «0. Auth».\n\nAC6 = 403 на /api/admin/** через SecurityFilterChain.\nAC7 = 403 на DELETE /api/subscriptions/{id}/force через @PreAuthorize.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "keycloakTokenUrl", "value": "http://localhost:8081/realms/subscription-tracker/protocol/openid-connect/token" },
+    { "key": "clientId", "value": "subscription-ui" },
+    { "key": "clientSecret", "value": "SkCtA9taUtiIjr9G95TnyCb6rjl91ZVk" },
+    { "key": "userUsername", "value": "user" },
+    { "key": "userPassword", "value": "user" },
+    { "key": "adminUsername", "value": "admin" },
+    { "key": "adminPassword", "value": "admin" },
+    { "key": "userToken", "value": "" },
+    { "key": "adminToken", "value": "" },
+    { "key": "subscriptionId", "value": "1" },
+    { "key": "userId", "value": "1" },
+    { "key": "categoryId", "value": "1" }
+  ],
+  "item": [
+    {
+      "name": "0. Auth — отримати JWT",
+      "item": [
+        {
+          "name": "Get USER token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  pm.collectionVariables.set('userToken', json.access_token);",
+                  "  console.log('userToken saved');",
+                  "} else {",
+                  "  console.warn('Не вдалося отримати USER token. Перевірте Direct access grants і логін/пароль.');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "grant_type", "value": "password" },
+                { "key": "client_id", "value": "{{clientId}}" },
+                { "key": "client_secret", "value": "{{clientSecret}}" },
+                { "key": "username", "value": "{{userUsername}}" },
+                { "key": "password", "value": "{{userPassword}}" },
+                { "key": "scope", "value": "openid" }
+              ]
+            },
+            "url": "{{keycloakTokenUrl}}",
+            "description": "Зберігає access_token USER у змінну userToken."
+          }
+        },
+        {
+          "name": "Get ADMIN token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  pm.collectionVariables.set('adminToken', json.access_token);",
+                  "  console.log('adminToken saved');",
+                  "} else {",
+                  "  console.warn('Не вдалося отримати ADMIN token. Перевірте Direct access grants і логін/пароль.');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "grant_type", "value": "password" },
+                { "key": "client_id", "value": "{{clientId}}" },
+                { "key": "client_secret", "value": "{{clientSecret}}" },
+                { "key": "username", "value": "{{adminUsername}}" },
+                { "key": "password", "value": "{{adminPassword}}" },
+                { "key": "scope", "value": "openid" }
+              ]
+            },
+            "url": "{{keycloakTokenUrl}}",
+            "description": "Зберігає access_token ADMIN у змінну adminToken. У Keycloak роль ADMIN має бути в realm_access.roles."
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. CRUD — підписки",
+      "item": [
+        {
+          "name": "Create subscription",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  pm.collectionVariables.set('subscriptionId', String(json.id));",
+                  "  console.log('subscriptionId =', json.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{userToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Netflix\",\n  \"price\": 9.99,\n  \"billingDate\": \"2026-12-01\",\n  \"userId\": {{userId}},\n  \"categoryId\": {{categoryId}}\n}"
+            },
+            "url": "{{baseUrl}}/api/subscriptions",
+            "description": "Створення підписки. Підставте реальні userId/categoryId з БД (seed: demo_user, Streaming)."
+          }
+        },
+        {
+          "name": "Get subscription by id",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{userToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/subscriptions/{{subscriptionId}}"
+          }
+        },
+        {
+          "name": "List subscriptions by user",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{userToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/subscriptions?userId={{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "subscriptions"],
+              "query": [
+                { "key": "userId", "value": "{{userId}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update subscription",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{userToken}}", "type": "string" }]
+            },
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Netflix Premium\",\n  \"price\": 15.99,\n  \"billingDate\": \"2026-12-15\",\n  \"userId\": {{userId}},\n  \"categoryId\": {{categoryId}}\n}"
+            },
+            "url": "{{baseUrl}}/api/subscriptions/{{subscriptionId}}"
+          }
+        },
+        {
+          "name": "Delete subscription",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{userToken}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/subscriptions/{{subscriptionId}}",
+            "description": "Звичайне видалення (будь-який автентифікований користувач)."
+          }
+        },
+        {
+          "name": "Without token — expect 401",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/subscriptions/{{subscriptionId}}",
+            "description": "AC5: без Bearer JWT має бути 401 Unauthorized."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. AC6 — SecurityFilterChain (/api/admin/**)",
+      "item": [
+        {
+          "name": "Admin ping as USER — expect 403",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{userToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/ping",
+            "description": "AC6: FilterChain — hasRole('ADMIN') на /api/admin/**. USER → 403 Forbidden."
+          }
+        },
+        {
+          "name": "Admin ping as ADMIN — expect 200",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/api/admin/ping",
+            "description": "ADMIN з роллю в realm_access.roles → 200 і текст «Only admins see this»."
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. AC7 — @PreAuthorize (force delete)",
+      "item": [
+        {
+          "name": "Create subscription for force-delete demo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('subscriptionId', String(pm.response.json().id));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{userToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Spotify (force-delete demo)\",\n  \"price\": 4.99,\n  \"billingDate\": \"2026-12-01\",\n  \"userId\": {{userId}},\n  \"categoryId\": {{categoryId}}\n}"
+            },
+            "url": "{{baseUrl}}/api/subscriptions",
+            "description": "Створює підписку, яку далі пробуємо видалити через /force."
+          }
+        },
+        {
+          "name": "Force delete as USER — expect 403",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{userToken}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/subscriptions/{{subscriptionId}}/force",
+            "description": "AC7: шлях /api/** дозволений автентифікованим у FilterChain, але @PreAuthorize(\"hasRole('ADMIN')\") блокує USER → 403 (AccessDeniedException)."
+          }
+        },
+        {
+          "name": "Force delete as ADMIN — expect 204",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": "{{baseUrl}}/api/subscriptions/{{subscriptionId}}/force",
+            "description": "ADMIN проходить @PreAuthorize → 204 No Content."
+          }
+        }
+      ]
+    }
+  ]
+}

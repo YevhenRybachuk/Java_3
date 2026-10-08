@@ -1,0 +1,9 @@
+databaseChangeLog:
+  - include:
+      file: db/changelog/changes/001-create-users-table.yaml
+  - include:
+      file: db/changelog/changes/002-create-categories-table.yaml
+  - include:
+      file: db/changelog/changes/003-create-subscriptions-table.yaml
+  - include:
+      file: db/changelog/changes/004-seed-demo-data.yaml

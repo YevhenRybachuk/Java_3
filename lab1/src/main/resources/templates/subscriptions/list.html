@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="uk" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments :: head('Підписки')}"></head>
+<body>
+<header th:replace="~{fragments :: topbar}"></header>
+
+<main class="container">
+    <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+
+    <div class="page-header">
+        <h1>Підписки</h1>
+        <a class="btn btn-primary" th:href="@{/subscriptions/new}">Додати підписку</a>
+    </div>
+
+    <table class="table" th:if="${!#lists.isEmpty(subscriptions)}">
+        <thead>
+        <tr>
+            <th>ID</th>
+            <th>Назва</th>
+            <th>Ціна</th>
+            <th>Дата оплати</th>
+            <th>Користувач</th>
+            <th>Категорія</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="item : ${subscriptions}">
+            <td th:text="${item.id}">1</td>
+            <td th:text="${item.name}">Netflix</td>
+            <td th:text="${item.price}">9.99</td>
+            <td th:text="${item.billingDate}">2026-10-01</td>
+            <td th:text="${item.username}">demo</td>
+            <td th:text="${item.categoryName}">Streaming</td>
+            <td class="actions">
+                <a class="btn btn-small" th:href="@{/subscriptions/{id}/edit(id=${item.id})}">Змінити</a>
+                <form th:action="@{/subscriptions/{id}/delete(id=${item.id})}" method="post" class="inline"
+                      onsubmit="return confirm('Видалити підписку?');">
+                    <button type="submit" class="btn btn-small btn-danger">Видалити</button>
+                </form>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <p th:if="${#lists.isEmpty(subscriptions)}" class="empty">Поки немає підписок. Створіть першу.</p>
+
+</main>
+<script th:if="${errorMessage}" th:inline="javascript">
+    alert([[${errorMessage}]]);
+</script>
+</body>
+</html>
