@@ -8,10 +8,13 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import lombok.Getter;
 import lombok.Setter;
+import org.example.lab1.validation.ValidSubscriptionRequest; // <-- Імпорт вашої анотації
 
 @Getter
 @Setter
+@ValidSubscriptionRequest // <-- AC1: Кастомна анотація на рівні класу
 public class SubscriptionRequestDto {
+
     @NotBlank
     private String name;
 
@@ -23,7 +26,6 @@ public class SubscriptionRequestDto {
     @FutureOrPresent
     private LocalDate billingDate;
 
-    @NotNull
     private Long userId;
 
     @NotNull
