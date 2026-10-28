@@ -6,6 +6,8 @@ import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.example.lab1.dto.SubscriptionRequestDto;
 import org.example.lab1.dto.SubscriptionResponseDto;
+import org.example.lab1.annotation.AuditOperation;
+import org.example.lab1.annotation.MeasureExecutionTime;
 import org.example.lab1.entity.Category;
 import org.example.lab1.entity.Subscription;
 import org.example.lab1.entity.User;
@@ -81,6 +83,7 @@ public class SubscriptionService {
     }
 
     @Transactional(readOnly = true)
+    @MeasureExecutionTime
     public List<SubscriptionResponseDto> findAllByUser(Long userId) {
         return subscriptionRepository.findAllByUserId(userId).stream()
                 .map(subscriptionMapper::toDto)
@@ -89,6 +92,7 @@ public class SubscriptionService {
 
     @PreAuthorize("hasRole('ADMIN')")
     @Transactional
+    @AuditOperation
     public void deleteAnySubscription(Long id) {
         Subscription subscription = findSubscriptionById(id);
         subscriptionRepository.delete(subscription);
