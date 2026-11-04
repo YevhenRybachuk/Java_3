@@ -6,6 +6,7 @@ import org.example.lab1.controller.AdminSubscriptionController;
 import org.example.lab1.controller.SubscriptionController;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.core.task.TaskRejectedException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -29,5 +30,12 @@ public class GlobalApiExceptionHandler {
     public ResponseEntity<Map<String, String>> handleBadRequest(IllegalArgumentException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("error", "Bad Request", "message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(TaskRejectedException.class)
+    public ResponseEntity<Map<String, String>> handleTaskRejected(TaskRejectedException ex) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(Map.of("error", "Service Unavailable",
+                        "message", "Система перевантажена. Спробуйте виконати запит пізніше."));
     }
 }

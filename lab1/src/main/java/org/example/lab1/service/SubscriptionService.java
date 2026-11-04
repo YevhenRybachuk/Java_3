@@ -21,21 +21,26 @@ import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.core.task.TaskRejectedException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 @RequiredArgsConstructor
 public class SubscriptionService {
+    private static final Logger log = LoggerFactory.getLogger(SubscriptionService.class);
 
     private final SubscriptionRepository subscriptionRepository;
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final SubscriptionMapper subscriptionMapper;
+    private final SubscriptionAsyncTasks subscriptionAsyncTasks;
 
 
     @Transactional
     public SubscriptionResponseDto create(SubscriptionRequestDto requestDto, OidcUser principal) {
         User currentUser = findOrCreateUser(principal);
-        return processCreate(requestDto, currentUser, isAdmin(principal));
+        return createAndNotify(requestDto, currentUser, isAdmin(principal));
     }
 
     @Transactional
@@ -54,7 +59,7 @@ public class SubscriptionService {
     @Transactional
     public SubscriptionResponseDto create(SubscriptionRequestDto requestDto, Jwt jwt) {
         User currentUser = findOrCreateUser(jwt);
-        return processCreate(requestDto, currentUser, isAdmin(jwt));
+        return createAndNotify(requestDto, currentUser, isAdmin(jwt));
     }
 
     @Transactional
@@ -114,6 +119,19 @@ public class SubscriptionService {
 
         subscription.setCategory(findCategoryById(requestDto.getCategoryId()));
         return subscriptionMapper.toDto(subscriptionRepository.save(subscription));
+    }
+
+    private SubscriptionResponseDto createAndNotify(SubscriptionRequestDto requestDto, User currentUser,
+                                                      boolean isAdmin) {
+        SubscriptionResponseDto created = processCreate(requestDto, currentUser, isAdmin);
+        try {
+            subscriptionAsyncTasks.sendSubscriptionCreatedEmail(currentUser.getEmail(), requestDto.getName());
+        } catch (TaskRejectedException ex) {
+            // Сповіщення необов'язкове: черга може відхилити його, але створення підписки вже успішне.
+            log.warn("Пул асинхронних задач перевантажений; повідомлення про підписку {} не поставлено в чергу",
+                    created.getId(), ex);
+        }
+        return created;
     }
 
     private SubscriptionResponseDto processUpdate(Long id, SubscriptionRequestDto requestDto, User currentUser, boolean isAdmin) {

@@ -2,11 +2,14 @@ package org.example.lab1.controller;
 
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import org.example.lab1.annotation.CurrentJwt;
 import org.example.lab1.annotation.PostCreatedMapping;
 import org.example.lab1.dto.SubscriptionRequestDto;
 import org.example.lab1.dto.SubscriptionResponseDto;
+import org.example.lab1.dto.SubscriptionInsightsDto;
+import org.example.lab1.service.SubscriptionAsyncService;
 import org.example.lab1.service.SubscriptionService;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -26,6 +29,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class SubscriptionController {
 
     private final SubscriptionService subscriptionService;
+    private final SubscriptionAsyncService subscriptionAsyncService;
 
     // Тип 2 (@PostCreatedMapping замість @PostMapping)
     // Тип 1 (@Valid активує @ValidSubscriptionRequest на DTO)
@@ -45,6 +49,14 @@ public class SubscriptionController {
     @GetMapping
     public List<SubscriptionResponseDto> findAllByUser(@RequestParam Long userId) {
         return subscriptionService.findAllByUser(userId);
+    }
+
+    /** Повертає об'єднаний результат перевірки платежу та прогнозу витрат без блокування потоку запиту. */
+    @GetMapping("/async-insights")
+    public CompletableFuture<SubscriptionInsightsDto> getAsyncInsights(
+            @RequestParam Long subscriptionId,
+            @RequestParam Long userId) {
+        return subscriptionAsyncService.getInsights(subscriptionId, userId);
     }
 
     @PutMapping("/{id}")

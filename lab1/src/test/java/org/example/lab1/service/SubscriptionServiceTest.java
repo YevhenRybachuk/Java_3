@@ -68,6 +68,8 @@ class SubscriptionServiceTest {
     private CategoryRepository categoryRepository;
     @Mock
     private SubscriptionMapper subscriptionMapper;
+    @Mock
+    private SubscriptionAsyncTasks subscriptionAsyncTasks;
 
     @InjectMocks
     private SubscriptionService subscriptionService;

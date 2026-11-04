@@ -6,6 +6,7 @@ import org.example.lab1.dto.SubscriptionRequestDto;
 import org.example.lab1.dto.SubscriptionResponseDto;
 import org.example.lab1.exception.GlobalApiExceptionHandler;
 import org.example.lab1.service.SubscriptionService;
+import org.example.lab1.service.SubscriptionAsyncService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,6 +15,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.core.task.TaskRejectedException;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
@@ -32,15 +34,18 @@ class SubscriptionControllerTest {
 
     private MockMvc mockMvc;
     private SubscriptionService subscriptionService;
+    private SubscriptionAsyncService subscriptionAsyncService;
 
     @BeforeEach
     void setUp() {
         subscriptionService = mock(SubscriptionService.class);
+        subscriptionAsyncService = mock(SubscriptionAsyncService.class);
 
         LocalValidatorFactoryBean validator = new LocalValidatorFactoryBean();
         validator.afterPropertiesSet();
 
-        mockMvc = MockMvcBuilders.standaloneSetup(new SubscriptionController(subscriptionService))
+        mockMvc = MockMvcBuilders.standaloneSetup(
+                        new SubscriptionController(subscriptionService, subscriptionAsyncService))
                 .setCustomArgumentResolvers(new JwtArgumentResolver())
                 .setControllerAdvice(new GlobalApiExceptionHandler())
                 .setValidator(validator)
@@ -182,6 +187,20 @@ class SubscriptionControllerTest {
                 .andExpect(jsonPath("$[0].name").value("YouTube Premium"));
 
         verify(subscriptionService).findAllByUser(10L);
+    }
+
+    @Test
+    @DisplayName("GET /api/subscriptions/async-insights — повертає 503, коли executor перевантажений")
+    void asyncInsights_executorRejected_returns503() throws Exception {
+        when(subscriptionAsyncService.getInsights(12L, 7L))
+                .thenThrow(new TaskRejectedException("черга заповнена"));
+
+        mockMvc.perform(get("/api/subscriptions/async-insights")
+                        .param("subscriptionId", "12")
+                        .param("userId", "7"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.error").value("Service Unavailable"))
+                .andExpect(jsonPath("$.message").value("Система перевантажена. Спробуйте виконати запит пізніше."));
     }
 
     // =====================================================================

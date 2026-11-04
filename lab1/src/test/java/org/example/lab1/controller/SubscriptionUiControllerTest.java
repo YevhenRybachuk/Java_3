@@ -12,6 +12,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
+import org.springframework.core.task.TaskRejectedException;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.web.servlet.mvc.support.RedirectAttributesModelMap;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
@@ -50,6 +53,22 @@ class SubscriptionUiControllerTest {
                 .build();
 
         SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    @DisplayName("UI reports executor overload and redirects instead of returning an error")
+    void rejectedAsyncTask_redirectsWithRetryMessage() {
+        GlobalUiExceptionHandler handler = new GlobalUiExceptionHandler();
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Referer", "/subscriptions/new");
+        RedirectAttributesModelMap redirectAttributes = new RedirectAttributesModelMap();
+
+        // Перевіряємо, що UI перенаправляє користувача та показує пораду повторити запит.
+        String view = handler.handleTaskRejected(request, redirectAttributes);
+
+        org.junit.jupiter.api.Assertions.assertEquals("redirect:/subscriptions/new", view);
+        org.junit.jupiter.api.Assertions.assertTrue(
+                redirectAttributes.getFlashAttributes().get("errorMessage").toString().contains("Спробуйте"));
     }
 
     @Test
