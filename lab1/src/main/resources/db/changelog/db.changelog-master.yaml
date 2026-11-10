@@ -7,3 +7,5 @@ databaseChangeLog:
       file: db/changelog/changes/003-create-subscriptions-table.yaml
   - include:
       file: db/changelog/changes/004-seed-demo-data.yaml
+  - include:
+      file: db/changelog/changes/005-quartz-and-scheduled-tasks.yaml
