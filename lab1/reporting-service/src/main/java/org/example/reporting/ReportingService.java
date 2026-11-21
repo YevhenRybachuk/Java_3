@@ -1,32 +1,29 @@
 package org.example.reporting;
 
 import java.math.BigDecimal;
-import java.util.List;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import org.example.reporting.messaging.SubscriptionEvent;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
 
 @Service
-class ReportingService {
-    private final RestClient subscriptionClient;
+public class ReportingService {
+    private final ConcurrentMap<Long, SubscriptionEvent> activeSubscriptions = new ConcurrentHashMap<>();
 
-    ReportingService(RestClient.Builder builder,
-                     @Value("${services.subscription.base-url}") String subscriptionBaseUrl) {
-        this.subscriptionClient = builder.baseUrl(subscriptionBaseUrl).build();
+    public void apply(SubscriptionEvent event) {
+        if ("DELETE".equals(event.action())) {
+            activeSubscriptions.remove(event.subscriptionId());
+        } else {
+            activeSubscriptions.put(event.subscriptionId(), event);
+        }
     }
 
-    SubscriptionReport summary(Long userId, String accessToken) {
-        List<SubscriptionItem> subscriptions = subscriptionClient.get()
-                .uri(uri -> uri.path("/api/subscriptions").queryParam("userId", userId).build())
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken)
-                .retrieve()
-                .body(new org.springframework.core.ParameterizedTypeReference<>() { });
-        if (subscriptions == null) return new SubscriptionReport(0, BigDecimal.ZERO);
-        BigDecimal total = subscriptions.stream().map(SubscriptionItem::price)
+    SubscriptionReport summary(Long userId) {
+        var subscriptions = activeSubscriptions.values().stream()
+                .filter(subscription -> subscription.userId().equals(userId))
+                .toList();
+        BigDecimal total = subscriptions.stream().map(SubscriptionEvent::price)
                 .filter(price -> price != null).reduce(BigDecimal.ZERO, BigDecimal::add);
         return new SubscriptionReport(subscriptions.size(), total);
     }
-
-    private record SubscriptionItem(BigDecimal price) { }
 }

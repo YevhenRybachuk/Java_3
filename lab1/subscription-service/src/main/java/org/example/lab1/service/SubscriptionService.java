@@ -12,6 +12,8 @@ import org.example.lab1.entity.Category;
 import org.example.lab1.entity.Subscription;
 import org.example.lab1.entity.User;
 import org.example.lab1.mapper.SubscriptionMapper;
+import org.example.lab1.messaging.SubscriptionEvent;
+import org.example.lab1.messaging.SubscriptionEventPublisher;
 import org.example.lab1.repository.CategoryRepository;
 import org.example.lab1.repository.SubscriptionRepository;
 import org.example.lab1.repository.UserRepository;
@@ -20,6 +22,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.core.task.TaskRejectedException;
 import org.slf4j.Logger;
@@ -35,6 +38,8 @@ public class SubscriptionService {
     private final CategoryRepository categoryRepository;
     private final SubscriptionMapper subscriptionMapper;
     private final SubscriptionAsyncTasks subscriptionAsyncTasks;
+    @Autowired
+    private SubscriptionEventPublisher subscriptionEventPublisher;
 
 
     @Transactional
@@ -118,7 +123,9 @@ public class SubscriptionService {
         }
 
         subscription.setCategory(findCategoryById(requestDto.getCategoryId()));
-        return subscriptionMapper.toDto(subscriptionRepository.save(subscription));
+        Subscription saved = subscriptionRepository.save(subscription);
+        publishSubscriptionChange(saved, "UPSERT");
+        return subscriptionMapper.toDto(saved);
     }
 
     private SubscriptionResponseDto createAndNotify(SubscriptionRequestDto requestDto, User currentUser,
@@ -152,7 +159,9 @@ public class SubscriptionService {
         }
 
         subscription.setCategory(findCategoryById(requestDto.getCategoryId()));
-        return subscriptionMapper.toDto(subscriptionRepository.save(subscription));
+        Subscription saved = subscriptionRepository.save(subscription);
+        publishSubscriptionChange(saved, "UPSERT");
+        return subscriptionMapper.toDto(saved);
     }
 
     private void processDelete(Long id, User currentUser, boolean isAdmin) {
@@ -163,6 +172,15 @@ public class SubscriptionService {
         }
 
         subscriptionRepository.delete(subscription);
+        publishSubscriptionChange(subscription, "DELETE");
+    }
+
+    private void publishSubscriptionChange(Subscription subscription, String action) {
+        // The null guard also keeps direct, non-Spring unit-test construction compatible.
+        if (subscriptionEventPublisher != null) {
+            subscriptionEventPublisher.publish(new SubscriptionEvent(subscription.getId(),
+                    subscription.getUser().getId(), subscription.getName(), subscription.getPrice(), action));
+        }
     }
 
 

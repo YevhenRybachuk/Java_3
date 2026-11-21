@@ -1,13 +1,15 @@
 ﻿spring:
   application:
     name: reporting-service
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
   security:
     oauth2:
       resourceserver:
         jwt:
           issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8081/realms/subscription-tracker}
-services:
-  subscription:
-    base-url: ${SUBSCRIPTION_SERVICE_URL:http://localhost:8080}
 server:
   port: 8082
